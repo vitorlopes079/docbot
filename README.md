@@ -74,7 +74,7 @@ docker-compose up
 | `agent-service`        | ✅ Done (mocked) |
 | `doc-service`          | ✅ Done (mocked) |
 | `job-service`          | ✅ Done          |
-| `storage-service`      | ⏳ Pending       |
+| `storage-service`      | ✅ Done          |
 | `api-gateway`          | ⏳ Pending       |
 | `auth-service`         | ⏳ Pending       |
 | `notification-service` | ⏳ Pending       |
