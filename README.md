@@ -49,10 +49,9 @@ User navigates docs online or downloads ZIP
 - **FastAPI** → API framework
 - **CrewAI** → AI agent orchestration
 - **Claude API** → AI model for code analysis
-- **Celery + Redis** → async job queue
+- **Redis** → job queue and status tracking
 - **Docker** → containerization
-- **PostgreSQL** → stores generated documentation
-- **AWS S3** → stores downloadable ZIP files
+- **Supabase** → PostgreSQL database + file storage
 
 ## What users get
 
