@@ -76,7 +76,8 @@ jobs:
           push: true
           tags: ghcr.io/vitorlopes079/docbot/frontend:latest
           build-args: |
-            NEXT_PUBLIC_API_URL=https://repodoc.tech
+            NEXT_PUBLIC_API_URL=https://api.repodoc.tech
+
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
