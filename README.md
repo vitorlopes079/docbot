@@ -70,11 +70,11 @@ docker-compose up
 | Service                | Status           |
 | ---------------------- | ---------------- |
 | `git-service`          | ✅ Done          |
-| `agent-service`        | ✅ Done (mocked) |
-| `doc-service`          | ✅ Done (mocked) |
+| `agent-service`        | ✅ Done          |
+| `doc-service`          | ✅ Done          |
 | `job-service`          | ✅ Done          |
 | `storage-service`      | ✅ Done          |
 | `api-gateway`          | ✅ Done          |
-| `auth-service`         | ⏳ Pending       |
+| `auth-service`         | ✅ Done          |
 | `notification-service` | ⏳ Pending       |
-| `frontend`             | ⏳ Pending       |
+| `frontend`             | ✅ Done          |
