@@ -7,6 +7,7 @@ class StorageRequest(BaseModel):
     repo_name: str
     github_url: str
     zip_bytes: str
+    user_id: Optional[str] = None
 
 class StorageResponse(BaseModel):
     job_id: str
@@ -20,4 +21,5 @@ class DocumentRecord(BaseModel):
     repo_name: str
     github_url: str
     file_url: str
+    user_id: Optional[str] = None
     created_at: Optional[datetime] = None

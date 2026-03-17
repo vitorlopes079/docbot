@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from typing import Optional
 from schemas import StorageRequest, StorageResponse
 from services.storage import StorageService
 from services.database import DatabaseService
@@ -26,7 +27,8 @@ def store_documentation(request: StorageRequest):
             job_id=request.job_id,
             repo_name=request.repo_name,
             github_url=request.github_url,
-            file_url=file_url
+            file_url=file_url,
+            user_id=request.user_id
         )
 
         return StorageResponse(
@@ -41,8 +43,17 @@ def store_documentation(request: StorageRequest):
 
 
 @app.get("/documents")
-def get_all_documents():
+def get_documents(user_id: Optional[str] = Query(None)):
+    """Get documents - if user_id provided, filter by user; otherwise return all"""
+    if user_id:
+        return database_service.get_documents_by_user(user_id)
     return database_service.get_all_documents()
+
+
+@app.get("/documents/recent")
+def get_recent_documents(limit: int = Query(10, ge=1, le=50)):
+    """Get recent public documents for homepage display"""
+    return database_service.get_recent_documents(limit)
 
 
 @app.get("/documents/{job_id}")

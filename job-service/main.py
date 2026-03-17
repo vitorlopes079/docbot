@@ -20,7 +20,7 @@ async def create_job(request: JobRequest, background_tasks: BackgroundTasks):
 
     job_store.create_job(job_id, request.github_url)
 
-    background_tasks.add_task(run_pipeline, job_id, request.github_url)
+    background_tasks.add_task(run_pipeline, job_id, request.github_url, request.user_id)
 
     return JobResponse(
         job_id=job_id,

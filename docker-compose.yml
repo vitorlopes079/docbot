@@ -1,0 +1,99 @@
+services:
+  redis:
+    image: redis:7
+    container_name: docbot-redis
+    restart: unless-stopped
+    networks:
+      - docbot-network
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: docbot-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./api-gateway/.env.production
+    depends_on:
+      - redis
+    networks:
+      - docbot-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+  git-service:
+    build: ./git-service
+    container_name: docbot-git-service
+    restart: unless-stopped
+    env_file:
+      - ./git-service/.env.production
+    networks:
+      - docbot-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8001
+
+  agent-service:
+    build: ./agent-service
+    container_name: docbot-agent-service
+    restart: unless-stopped
+    env_file:
+      - ./agent-service/.env.production
+    networks:
+      - docbot-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8002
+
+  doc-service:
+    build: ./doc-service
+    container_name: docbot-doc-service
+    restart: unless-stopped
+    env_file:
+      - ./doc-service/.env.production
+    networks:
+      - docbot-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8003
+
+  job-service:
+    build: ./job-service
+    container_name: docbot-job-service
+    restart: unless-stopped
+    env_file:
+      - ./job-service/.env.production
+    depends_on:
+      - redis
+    networks:
+      - docbot-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8004
+
+  storage-service:
+    build: ./storage-service
+    container_name: docbot-storage-service
+    restart: unless-stopped
+    env_file:
+      - ./storage-service/.env.production
+    networks:
+      - docbot-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8005
+
+  auth-service:
+    build: ./auth-service
+    container_name: docbot-auth-service
+    restart: unless-stopped
+    env_file:
+      - ./auth-service/.env.production
+    networks:
+      - docbot-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8006
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: docbot-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - docbot-network
+
+networks:
+  docbot-network:
+    driver: bridge

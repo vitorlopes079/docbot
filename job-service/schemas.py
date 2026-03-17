@@ -3,6 +3,7 @@ from typing import Optional
 
 class JobRequest(BaseModel):
     github_url: str
+    user_id: Optional[str] = None
 
 class JobResponse(BaseModel):
     job_id: str

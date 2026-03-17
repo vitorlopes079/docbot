@@ -11,13 +11,15 @@ class DatabaseService:
         key = os.getenv("SUPABASE_KEY", "")
         self.client: Client = create_client(url, key)
 
-    def save_document(self, job_id: str, repo_name: str, github_url: str, file_url: str) -> dict:
+    def save_document(self, job_id: str, repo_name: str, github_url: str, file_url: str, user_id: Optional[str] = None) -> dict:
         data = {
             "job_id": job_id,
             "repo_name": repo_name,
             "github_url": github_url,
             "file_url": file_url
         }
+        if user_id:
+            data["user_id"] = user_id
         response = self.client.table("documents").insert(data).execute()
         return response.data[0]
 
@@ -29,4 +31,12 @@ class DatabaseService:
 
     def get_all_documents(self) -> list:
         response = self.client.table("documents").select("*").order("created_at", desc=True).execute()
+        return response.data
+
+    def get_documents_by_user(self, user_id: str) -> list:
+        response = self.client.table("documents").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+        return response.data
+
+    def get_recent_documents(self, limit: int = 10) -> list:
+        response = self.client.table("documents").select("*").order("created_at", desc=True).limit(limit).execute()
         return response.data
