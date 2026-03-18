@@ -1,10 +1,12 @@
 import redis
 import json
+import os
 from typing import Optional, cast
 
 class JobStore:
     def __init__(self):
-        self.redis = redis.Redis(host="localhost", port=6379, decode_responses=True)
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+        self.redis = redis.Redis.from_url(redis_url, decode_responses=True)
 
     def create_job(self, job_id: str, github_url: str):
         job_data = {
