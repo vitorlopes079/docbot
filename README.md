@@ -20,7 +20,7 @@ API Gateway routes the request
         ↓
 Git Service clones & reads the repo
         ↓
-Agent Service analyzes code with Claude AI
+Agent Service analyzes code with AI agents
         ↓
 Doc Service formats the documentation
         ↓
@@ -28,6 +28,38 @@ Storage Service saves to S3 + PostgreSQL
         ↓
 User navigates docs online or downloads ZIP
 ```
+
+## AI Agents
+
+DocBot uses **CrewAI** to orchestrate a team of three AI agents that work together sequentially to analyze code and generate documentation.
+
+### The Agents
+
+| Agent | Role | Responsibility |
+|-------|------|----------------|
+| **Code Analyst** | Technical Analysis | Analyzes source files and produces detailed technical summaries covering architecture, key components, interactions, and technologies used |
+| **Documentation Writer** | Content Creation | Transforms technical analysis into clear, well-structured markdown documentation with sections for Overview, Architecture, Setup, and API Reference |
+| **Documentation Architect** | Quality Control | Reviews and polishes all documentation sections, ensures consistency in tone and formatting, and prepares the final output for publishing |
+
+### How the Agents Work Together
+
+```text
+Repository Files (from Git Service)
+        ↓
+Preprocessing: Filters junk files and summarizes code in batches
+        ↓
+Code Analyst: Produces detailed technical summary
+        ↓
+Documentation Writer: Creates 4 markdown sections
+        ↓
+Documentation Architect: Reviews, polishes, and finalizes
+        ↓
+Final Documentation Output
+```
+
+**Preprocessing Step:** Before the agents analyze the code, the system filters out non-essential files (like `node_modules`, `.git`, lock files, images, etc.) and creates condensed summaries of the remaining files in batches. This reduces the amount of data the agents need to process.
+
+**LLM Backend:** The agents use Google Gemini 2.5 Flash as the underlying language model for analysis and generation.
 
 ## Services
 
@@ -78,3 +110,10 @@ docker-compose up
 | `auth-service`         | ✅ Done          |
 | `notification-service` | ⏳ Pending       |
 | `frontend`             | ✅ Done          |
+
+## Next Steps
+
+- **Email Provider Integration** → Set up a third-party email service (e.g., SendGrid, Resend, AWS SES) to enable:
+  - Contact form functionality
+  - Forgot password / password reset flow
+  - Notifications when documentation is ready
