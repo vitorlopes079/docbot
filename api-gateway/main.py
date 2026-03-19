@@ -1,10 +1,14 @@
 import os
+import redis
 import httpx
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 app = FastAPI()
 
@@ -63,18 +67,16 @@ async def create_job(request: Request):
     if user_data.get("credits", 0) <= 0:
         raise HTTPException(status_code=402, detail="No credits remaining. Please purchase more credits to continue.")
 
-    # Deduct credit before processing
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        deduct_response = await client.post(
-            f"{AUTH_SERVICE_URL}/auth/credits/deduct",
-            headers={"Authorization": token}
-        )
-        if deduct_response.status_code != 200:
-            raise HTTPException(status_code=402, detail="Failed to deduct credit")
+    # Check if user already has a job in progress (one concurrent job per user)
+    user_id = user_data["id"]
+    lock_key = f"user_lock:{user_id}"
+    lock_acquired = redis_client.set(lock_key, "1", nx=True, ex=900)
+    if not lock_acquired:
+        raise HTTPException(status_code=400, detail="You already have a job in progress")
 
     # Parse the original request body and add user_id
     body = await request.json()
-    body["user_id"] = user_data["id"]
+    body["user_id"] = user_id
 
     # Forward to job service with user_id included
     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -166,3 +168,25 @@ async def get_me(request: Request):
         if response.status_code != 200:
             raise HTTPException(status_code=response.status_code, detail=response.json().get("detail", "Unauthorized"))
         return response.json()
+
+
+@app.post("/auth/verify-email")
+async def verify_email(request: Request):
+    response = await forward(request, f"{AUTH_SERVICE_URL}/auth/verify-email")
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=response.json().get("detail", "Verification failed")
+        )
+    return response.json()
+
+
+@app.post("/auth/resend-verification")
+async def resend_verification(request: Request):
+    response = await forward(request, f"{AUTH_SERVICE_URL}/auth/resend-verification")
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=response.json().get("detail", "Failed to resend verification")
+        )
+    return response.json()

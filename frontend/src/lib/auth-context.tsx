@@ -9,11 +9,16 @@ import {
 } from "react";
 import { api, User } from "./api";
 
+interface RegisterResult {
+  requiresVerification: boolean;
+  email: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<RegisterResult>;
   logout: () => void;
   refetchUser: () => Promise<void>;
 }
@@ -44,9 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(userData);
   };
 
-  const register = async (email: string, password: string) => {
-    await api.register(email, password);
-    await login(email, password);
+  const register = async (email: string, password: string): Promise<RegisterResult> => {
+    const user = await api.register(email, password);
+    // Don't auto-login - user needs to verify email first
+    return { requiresVerification: true, email: user.email };
   };
 
   const logout = () => {

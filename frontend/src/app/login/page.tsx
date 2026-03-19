@@ -12,6 +12,8 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const { user, login, register, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -48,10 +50,14 @@ export default function LoginPage() {
     try {
       if (tab === "login") {
         await login(email, password);
+        router.push("/");
       } else {
-        await register(email, password);
+        const result = await register(email, password);
+        if (result.requiresVerification) {
+          setRegisteredEmail(result.email);
+          setShowVerificationMessage(true);
+        }
       }
-      router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -106,6 +112,39 @@ export default function LoginPage() {
       {/* Main content */}
       <main className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
+          {/* Verification Success Message */}
+          {showVerificationMessage ? (
+            <div className="bg-vscode-sidebar border border-vscode-border rounded-xl p-6 text-center">
+              <div className="w-14 h-14 mx-auto mb-4 bg-vscode-success/20 rounded-full flex items-center justify-center">
+                <svg className="w-7 h-7 text-vscode-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-vscode-text mb-2">Check your email</h2>
+              <p className="text-vscode-muted mb-4">
+                We&apos;ve sent a verification link to <span className="text-vscode-text">{registeredEmail}</span>
+              </p>
+              <p className="text-sm text-vscode-muted mb-6">
+                Please verify your email to receive your free credits and start using RepoDoc.
+              </p>
+              <button
+                onClick={() => {
+                  setShowVerificationMessage(false);
+                  handleTabChange("login");
+                }}
+                className="w-full h-11 bg-vscode-accent hover:bg-vscode-accent-hover rounded-lg font-medium transition-colors"
+              >
+                Go to Sign In
+              </button>
+              <Link
+                href="/resend-verification"
+                className="block mt-4 text-sm text-vscode-muted hover:text-vscode-accent transition-colors"
+              >
+                Didn&apos;t receive an email? Resend verification
+              </Link>
+            </div>
+          ) : (
+          <>
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="w-14 h-14 bg-vscode-accent rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-vscode-accent/20">
@@ -295,6 +334,8 @@ export default function LoginPage() {
               </>
             )}
           </p>
+          </>
+          )}
         </div>
       </main>
 

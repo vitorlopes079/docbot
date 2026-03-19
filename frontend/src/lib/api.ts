@@ -37,12 +37,23 @@ export interface User {
   id: string;
   email: string;
   credits: number;
+  email_verified: boolean;
   created_at: string;
 }
 
 export interface LoginResponse {
   access_token: string;
   token_type: string;
+}
+
+export interface VerificationResponse {
+  success: boolean;
+  message: string;
+  credits_awarded: number;
+}
+
+export interface MessageResponse {
+  message: string;
 }
 
 export const api = {
@@ -59,6 +70,18 @@ export const api = {
     }),
 
   me: () => request<User>("/auth/me"),
+
+  verifyEmail: (token: string) =>
+    request<VerificationResponse>("/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    }),
+
+  resendVerification: (email: string) =>
+    request<MessageResponse>("/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
 
   // Jobs
   createJob: (github_url: string) =>

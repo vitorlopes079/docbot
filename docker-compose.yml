@@ -78,9 +78,21 @@ services:
     restart: unless-stopped
     env_file:
       - ./auth-service/.env.production
+    depends_on:
+      - notification-service
     networks:
       - docbot-network
     command: uvicorn main:app --host 0.0.0.0 --port 8006
+
+  notification-service:
+    build: ./notification-service
+    container_name: docbot-notification-service
+    restart: unless-stopped
+    env_file:
+      - ./notification-service/.env.production
+    networks:
+      - docbot-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8007
 
   frontend:
     build:

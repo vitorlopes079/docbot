@@ -2,6 +2,7 @@ import httpx
 import os
 import base64
 import traceback
+import redis
 from dotenv import load_dotenv
 from services.job_store import JobStore
 
@@ -13,9 +14,14 @@ GIT_SERVICE_URL = os.getenv("GIT_SERVICE_URL", "http://localhost:8001")
 AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://localhost:8002")
 DOC_SERVICE_URL = os.getenv("DOC_SERVICE_URL", "http://localhost:8003")
 STORAGE_SERVICE_URL = os.getenv("STORAGE_SERVICE_URL", "http://localhost:8005")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8006")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+
+redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
 
 async def run_pipeline(job_id: str, github_url: str, user_id: str = None):
+    lock_key = f"user_lock:{user_id}" if user_id else None
     try:
         # ============================================================
         # Step 1 - Git Service
@@ -132,6 +138,24 @@ async def run_pipeline(job_id: str, github_url: str, user_id: str = None):
             print(f"[STORAGE SERVICE] File URL: {storage_data.get('file_url', 'N/A')}")
 
         # ============================================================
+        # Step 5 - Deduct Credit (only after successful storage)
+        # ============================================================
+        if user_id:
+            print(f"\n{'='*60}")
+            print(f"[PIPELINE] Deducting credit for user: {user_id}")
+            print(f"{'='*60}")
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                deduct_response = await client.post(
+                    f"{AUTH_SERVICE_URL}/internal/credits/deduct",
+                    json={"user_id": user_id}
+                )
+                if deduct_response.status_code == 200:
+                    print(f"[PIPELINE] Credit deducted successfully")
+                else:
+                    print(f"[PIPELINE] Warning: Failed to deduct credit - {deduct_response.text}")
+
+        # ============================================================
         # Done
         # ============================================================
         print(f"\n{'='*60}")
@@ -152,3 +176,12 @@ async def run_pipeline(job_id: str, github_url: str, user_id: str = None):
         print(f"{'='*60}\n")
 
         job_store.update_job(job_id, "failed", 0, f"Something went wrong: {str(e)}")
+
+    finally:
+        # Always release the user lock
+        if lock_key:
+            try:
+                redis_client.delete(lock_key)
+                print(f"[PIPELINE] Released lock for user: {user_id}")
+            except Exception as e:
+                print(f"[PIPELINE] Warning: Failed to release lock - {e}")
