@@ -1,6 +1,6 @@
 import uuid
 import asyncio
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, HTTPException
 from schemas import JobRequest, JobResponse, JobStatus
 from services.job_store import JobStore
 from services.pipeline import run_pipeline
@@ -15,12 +15,12 @@ def health():
 
 
 @app.post("/jobs", response_model=JobResponse)
-async def create_job(request: JobRequest, background_tasks: BackgroundTasks):
+async def create_job(request: JobRequest):
     job_id = str(uuid.uuid4())
 
     job_store.create_job(job_id, request.github_url)
 
-    background_tasks.add_task(run_pipeline, job_id, request.github_url, request.user_id)
+    asyncio.create_task(run_pipeline(job_id, request.github_url, request.user_id))
 
     return JobResponse(
         job_id=job_id,
