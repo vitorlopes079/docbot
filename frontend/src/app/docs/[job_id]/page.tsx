@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import JSZip from "jszip";
+import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 
@@ -42,6 +43,7 @@ function getFileIcon(filename: string): string {
 export default function DocViewerPage() {
   const params = useParams();
   const jobId = params.job_id as string;
+  const { user } = useAuth();
 
   const [doc, setDoc] = useState<Document | null>(null);
   const [files, setFiles] = useState<MarkdownFile[]>([]);
@@ -186,7 +188,7 @@ export default function DocViewerPage() {
       <div className="h-12 bg-vscode-surface border-b border-vscode-border flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <Link
-            href="/docs"
+            href={user ? "/docs" : "/"}
             className="flex items-center gap-2 text-vscode-muted hover:text-vscode-text transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +199,7 @@ export default function DocViewerPage() {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            <span className="text-sm">Back to Docs</span>
+            <span className="text-sm">{user ? "Back to Docs" : "Back to Home"}</span>
           </Link>
           {doc && (
             <>

@@ -179,6 +179,7 @@ class AgentService:
         # Step 1: Preprocess files into a condensed summary
         print("Starting file preprocessing...")
         condensed_summary = preprocess_files(request.files)
+        print(f"[PREPROCESSOR] Condensed summary size: {len(condensed_summary)} characters")
 
         # Create our three agents
         code_analyst = get_code_analyst()
