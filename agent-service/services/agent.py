@@ -136,7 +136,11 @@ def preprocess_files(files: list[FileContent]) -> str:
 Provide a brief summary for each file."""
 
         try:
+            print(f"[GEMINI] Calling Gemini for batch {i + 1}/{len(batches)}...")
+            batch_start = time.time()
             summary = call_gemini_with_retry(prompt)
+            batch_elapsed = int((time.time() - batch_start) * 1000)
+            print(f"[GEMINI] Response received for batch {i + 1}/{len(batches)} (time={batch_elapsed}ms)")
             summaries.append(summary)
         except Exception as e:
             error_type = type(e).__name__

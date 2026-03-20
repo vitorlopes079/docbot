@@ -19,6 +19,9 @@ def health():
 
 @app.post("/analyze", response_model=AgentResponse)
 def analyze_repo(request: AgentRequest):
+    print(f"\n{'='*60}")
+    print(f"[AGENT SERVICE] Received /analyze request: {len(request.files)} files, repo={request.repo_name}")
+    print(f"{'='*60}")
     try:
         result = agent.analyze(request)
         return result

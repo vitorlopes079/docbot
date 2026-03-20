@@ -2,6 +2,7 @@ import httpx
 import os
 import base64
 import traceback
+import time
 import redis
 from dotenv import load_dotenv
 from services.job_store import JobStore
@@ -34,12 +35,17 @@ async def run_pipeline(job_id: str, github_url: str, user_id: str = None):
 
         job_store.update_job(job_id, "processing_git", 10, "Cloning repository...")
 
+        git_url = f"{GIT_SERVICE_URL}/clone"
+        print(f"[HTTP] Calling git-service at {git_url}...")
+        git_start = time.time()
         async with httpx.AsyncClient(timeout=60.0) as client:
             git_response = await client.post(
-                f"{GIT_SERVICE_URL}/clone",
+                git_url,
                 json={"github_url": github_url}
             )
             git_data = git_response.json()
+        git_elapsed = int((time.time() - git_start) * 1000)
+        print(f"[HTTP] Response from git-service: status={git_response.status_code} time={git_elapsed}ms")
 
         print(f"[GIT SERVICE] Status code: {git_response.status_code}")
         print(f"[GIT SERVICE] Response keys: {git_data.keys() if isinstance(git_data, dict) else 'NOT A DICT'}")
@@ -59,12 +65,17 @@ async def run_pipeline(job_id: str, github_url: str, user_id: str = None):
 
         job_store.update_job(job_id, "processing_agent", 40, "Analyzing code with AI...")
 
+        agent_url = f"{AGENT_SERVICE_URL}/analyze"
+        print(f"[HTTP] Calling agent-service at {agent_url}...")
+        agent_start = time.time()
         async with httpx.AsyncClient(timeout=600.0) as client:
             agent_response = await client.post(
-                f"{AGENT_SERVICE_URL}/analyze",
+                agent_url,
                 json=git_data
             )
             agent_data = agent_response.json()
+        agent_elapsed = int((time.time() - agent_start) * 1000)
+        print(f"[HTTP] Response from agent-service: status={agent_response.status_code} time={agent_elapsed}ms")
 
         print(f"[AGENT SERVICE] Status code: {agent_response.status_code}")
         print(f"[AGENT SERVICE] Response keys: {agent_data.keys() if isinstance(agent_data, dict) else 'NOT A DICT'}")
@@ -89,11 +100,16 @@ async def run_pipeline(job_id: str, github_url: str, user_id: str = None):
 
         job_store.update_job(job_id, "processing_doc", 70, "Formatting documentation...")
 
+        doc_url = f"{DOC_SERVICE_URL}/format"
+        print(f"[HTTP] Calling doc-service at {doc_url}...")
+        doc_start = time.time()
         async with httpx.AsyncClient(timeout=30.0) as client:
             doc_response = await client.post(
-                f"{DOC_SERVICE_URL}/format",
+                doc_url,
                 json=agent_data
             )
+        doc_elapsed = int((time.time() - doc_start) * 1000)
+        print(f"[HTTP] Response from doc-service: status={doc_response.status_code} time={doc_elapsed}ms")
 
         print(f"[DOC SERVICE] Status code: {doc_response.status_code}")
         print(f"[DOC SERVICE] Content-Type: {doc_response.headers.get('content-type', 'N/A')}")
@@ -123,12 +139,17 @@ async def run_pipeline(job_id: str, github_url: str, user_id: str = None):
         if user_id:
             storage_payload["user_id"] = user_id
 
+        storage_url = f"{STORAGE_SERVICE_URL}/store"
+        print(f"[HTTP] Calling storage-service at {storage_url}...")
+        storage_start = time.time()
         async with httpx.AsyncClient(timeout=30.0) as client:
             storage_response = await client.post(
-                f"{STORAGE_SERVICE_URL}/store",
+                storage_url,
                 json=storage_payload
             )
             storage_data = storage_response.json()
+        storage_elapsed = int((time.time() - storage_start) * 1000)
+        print(f"[HTTP] Response from storage-service: status={storage_response.status_code} time={storage_elapsed}ms")
 
         print(f"[STORAGE SERVICE] Status code: {storage_response.status_code}")
         print(f"[STORAGE SERVICE] Response keys: {storage_data.keys() if isinstance(storage_data, dict) else 'NOT A DICT'}")
@@ -145,15 +166,20 @@ async def run_pipeline(job_id: str, github_url: str, user_id: str = None):
             print(f"[PIPELINE] Deducting credit for user: {user_id}")
             print(f"{'='*60}")
 
+            auth_url = f"{AUTH_SERVICE_URL}/internal/credits/deduct"
+            print(f"[HTTP] Calling auth-service at {auth_url}...")
+            auth_start = time.time()
             async with httpx.AsyncClient(timeout=10.0) as client:
                 deduct_response = await client.post(
-                    f"{AUTH_SERVICE_URL}/internal/credits/deduct",
+                    auth_url,
                     json={"user_id": user_id}
                 )
-                if deduct_response.status_code == 200:
-                    print(f"[PIPELINE] Credit deducted successfully")
-                else:
-                    print(f"[PIPELINE] Warning: Failed to deduct credit - {deduct_response.text}")
+            auth_elapsed = int((time.time() - auth_start) * 1000)
+            print(f"[HTTP] Response from auth-service: status={deduct_response.status_code} time={auth_elapsed}ms")
+            if deduct_response.status_code == 200:
+                print(f"[PIPELINE] Credit deducted successfully")
+            else:
+                print(f"[PIPELINE] Warning: Failed to deduct credit - {deduct_response.text}")
 
         # ============================================================
         # Done
