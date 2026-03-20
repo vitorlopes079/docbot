@@ -65,18 +65,32 @@ def call_gemini_with_retry(prompt: str, max_retries: int = 3) -> str:
             return response.text
         except Exception as e:
             error_str = str(e).lower()
+            error_type = type(e).__name__
+
+            # Log full error details
+            print(f"[GEMINI ERROR] Exception type: {error_type}")
+            print(f"[GEMINI ERROR] Full message: {e}")
+
+            # Try to extract status code and response details if available
+            if hasattr(e, 'status_code'):
+                print(f"[GEMINI ERROR] Status code: {e.status_code}")
+            if hasattr(e, 'response'):
+                print(f"[GEMINI ERROR] Response: {e.response}")
+            if hasattr(e, 'message'):
+                print(f"[GEMINI ERROR] Message: {e.message}")
 
             # Check if it's a rate limit error
             if "429" in str(e) or "rate" in error_str or "quota" in error_str:
                 if attempt < max_retries:
                     wait_time = delays[attempt]
-                    print(f"Rate limit hit, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
+                    print(f"[GEMINI RETRY] Rate limit detected, waiting {wait_time}s before retry {attempt + 1}/{max_retries}...")
                     time.sleep(wait_time)
                 else:
-                    print(f"Rate limit persists after {max_retries} retries, raising error")
+                    print(f"[GEMINI RETRY] Rate limit persists after {max_retries} retries, raising error")
                     raise
             else:
                 # Not a rate limit error, raise immediately
+                print(f"[GEMINI ERROR] Non-retryable error, raising immediately")
                 raise
 
 
@@ -125,7 +139,11 @@ Provide a brief summary for each file."""
             summary = call_gemini_with_retry(prompt)
             summaries.append(summary)
         except Exception as e:
-            print(f"Error processing batch {i + 1}: {e}")
+            error_type = type(e).__name__
+            print(f"[BATCH ERROR] Failed processing batch {i + 1}/{len(batches)}")
+            print(f"[BATCH ERROR] Exception type: {error_type}")
+            print(f"[BATCH ERROR] Full error: {e}")
+            print(f"[BATCH ERROR] Files in batch: {[f.path for f in batch]}")
             # Add a fallback summary for failed batches
             file_list = ", ".join([f.path for f in batch])
             summaries.append(f"Files in this batch ({file_list}): Could not be summarized due to an error.")
