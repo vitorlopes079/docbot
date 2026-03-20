@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import JSZip from "jszip";
-import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 
@@ -42,7 +41,6 @@ function getFileIcon(filename: string): string {
 
 export default function DocViewerPage() {
   const params = useParams();
-  const router = useRouter();
   const jobId = params.job_id as string;
 
   const [doc, setDoc] = useState<Document | null>(null);
@@ -50,19 +48,12 @@ export default function DocViewerPage() {
   const [activeFile, setActiveFile] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { user, loading: authLoading } = useAuth();
 
+  // Fetch document metadata (public - no auth required)
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login");
-    }
-  }, [user, authLoading, router]);
-
-  // Fetch document metadata
-  useEffect(() => {
-    if (user && jobId) {
+    if (jobId) {
       api
-        .getDocuments()
+        .getRecentDocuments()
         .then((docs) => {
           const found = docs.find((d) => d.job_id === jobId);
           if (found) {
@@ -77,7 +68,7 @@ export default function DocViewerPage() {
           setLoading(false);
         });
     }
-  }, [user, jobId]);
+  }, [jobId]);
 
   // Fetch and extract ZIP file
   useEffect(() => {
@@ -186,42 +177,6 @@ export default function DocViewerPage() {
         );
     }
   };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-vscode-bg">
-        <Navbar />
-        <div className="flex items-center justify-center py-32">
-          <div className="flex items-center gap-3 text-vscode-muted">
-            <svg
-              className="w-5 h-5 animate-spin text-vscode-accent"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            <span>Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-vscode-bg flex flex-col">
